@@ -80,7 +80,7 @@ template <typename T> void EvaluationTest(int iItem, std::string filename) {
   DataStructure* pds6 = new DataStructure;
   for (int i = 0; i < 6; i++) {
     strcpy_s(buf, 20, colours[i]);
-    ITEM5* p = (T*)GetItem(iItem, buf);
+    T* p = (T*)GetItem(iItem, buf);
     *pds6 += (T*)GetItem(iItem, buf); // test operator+=
   }
   std::cout << *pds6 << std::endl;
@@ -92,7 +92,7 @@ template <typename T> void EvaluationTest(int iItem, std::string filename) {
   }
   for (int i = 0; i < 6; i++) {
     strcpy_s(buf, 20, colours[i]);
-    ITEM5* p = (T*)GetItem(iItem, buf);
+    T* p = (T*)GetItem(iItem, buf);
     *pds6 -= buf; // test operator-=
   }
   std::cout << "Number of items is " << pds6->GetItemsNumber()
@@ -104,7 +104,7 @@ template <typename T> void EvaluationTest(int iItem, std::string filename) {
   DataStructure* pds7 = new DataStructure;
   for (int i = 0; i < 6; i++) {
     strcpy_s(buf, 20, colours[i]);
-    ITEM5* p = (T*)GetItem(iItem, buf);
+    T* p = (T*)GetItem(iItem, buf);
     *pds7 += (T*)GetItem(iItem, buf); // test operator+=
   }
   strcpy_s(buf, 20, "Heledam Roheline");

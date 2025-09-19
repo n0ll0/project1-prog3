@@ -48,4 +48,4 @@ typedef struct headerE {
 } HEADER_E;
 
 // pointer_to_item is a generic pointer type to any ITEMn structure
-typedef void* pointer_to_item;
+typedef item2* pointer_to_item;

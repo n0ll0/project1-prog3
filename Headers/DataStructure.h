@@ -10,7 +10,7 @@
 
 class DataStructure {
 private:
-  HEADER_C* pStruct;
+  HEADER_C* pStruct2;
 
 public:
   DataStructure();
