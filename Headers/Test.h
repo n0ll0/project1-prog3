@@ -47,17 +47,19 @@ template <typename T> void EvaluationTest(int iItem, std::string filename) {
   // Test 3
   //
   std::cout << std::endl << "Test copy constructor and operator==" << std::endl;
-  DataStructure* pds3 = new DataStructure(5);
-  DataStructure ds3 = *pds3; // test copy constructor
-  std::cout << ds3 << std::endl;
-  std::cout << ((*pds3 == ds3) ? "structures are identical"
-                               : "structures are not identical")
-            << std::endl; // test operator==
-  *pds3 += (T*)GetItem(iItem);
-  std::cout << ((*pds3 == ds3) ? "structures are identical"
-                               : "structures are not identical")
-            << std::endl;
-  delete pds3;
+  {
+    DataStructure* pds3 = new DataStructure(5);
+    DataStructure ds3 = *pds3; // test copy constructor
+    std::cout << ds3 << std::endl;
+    std::cout << ((*pds3 == ds3) ? "structures are identical"
+                                 : "structures are not identical")
+              << std::endl; // test operator==
+    *pds3 += (T*)GetItem(iItem);
+    std::cout << ((*pds3 == ds3) ? "structures are identical"
+                                 : "structures are not identical")
+              << std::endl;
+    delete pds3;
+  }
   std::cin.get(c);
   //
   // Test 4

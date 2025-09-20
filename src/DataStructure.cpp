@@ -25,9 +25,9 @@ namespace {
 // map 'A'..'Z' to [0..25]; returns -1 if not a letter
 int alphaIndex(char c) {
   unsigned char uc = static_cast<unsigned char>(c);
-  char up = static_cast<char>(std::toupper(uc));
-  if (up >= 'A' && up <= 'Z')
-    return up - 'A';
+  char upperChar = static_cast<char>(std::toupper(uc));
+  if (upperChar >= 'A' && upperChar <= 'Z')
+    return upperChar - 'A';
   return -1;
 }
 
@@ -82,11 +82,12 @@ void insertHeaderSorted(HEADER_C*& head, HEADER_C* prev, HEADER_C* node) {
 }
 
 // Deep copy a single ITEM2 (without next)
-ITEM2* cloneItem2(const ITEM2* src) {
-  ITEM2* p = new ITEM2;
+pointer_to_item cloneItem2(const pointer_to_item src) {
+  pointer_to_item p = new ITEM2;
   size_t len = std::strlen(src->pID);
   p->pID = new char[len + 1];
-  std::memcpy(p->pID, src->pID, len + 1);
+  strcpy_s(p->pID, len + 1, src->pID);
+  // std::memcpy();
   p->Code = src->Code;
   if (src->pTime) {
     p->pTime = new TIME;
@@ -99,7 +100,7 @@ ITEM2* cloneItem2(const ITEM2* src) {
 }
 
 // Destroy item (ID string and time included)
-void destroyItem2(ITEM2* it) {
+void destroyItem2(pointer_to_item it) {
   if (!it)
     return;
   if (it->pID)
@@ -115,47 +116,71 @@ DataStructure::DataStructure(int n) : pStruct2(nullptr) {
   if (n < 0)
     throw std::runtime_error("n cannot be negative");
   int inserted = 0;
+  const int batchSize = 32;
   while (inserted < n) {
-    ITEM2* it = static_cast<ITEM2*>(::GetItem(NITEM));
-    if (!it)
-      throw std::runtime_error("Failed to generate item");
-    it->pNext = nullptr;
-    try {
-      *this += it;
-      ++inserted;
-    } catch (const std::exception&) {
-      // duplicate or invalid; skip without freeing to avoid cross-CRT delete
-      // memory is owned by the DataSource allocator; we simply retry
+    int toGenerate = std::min(batchSize, n - inserted);
+    pointer_to_item items[batchSize] = {nullptr};
+    int generated = 0;
+    // Generate a batch of items
+    for (int i = 0; i < toGenerate; ++i) {
+      items[i] = static_cast<pointer_to_item>(::GetItem(NITEM));
+      if (!items[i])
+        throw std::runtime_error("Failed to generate item");
+      items[i]->pNext = nullptr;
+      ++generated;
+    }
+    // Insert the batch
+    for (int i = 0; i < generated && inserted < n; ++i) {
+      try {
+        *this += items[i];
+        ++inserted;
+      } catch (const std::exception&) {
+      }
     }
   }
 }
 
 // 4. Constructor: read from previously written binary file
+/*
+Custom binary file format:
+- FileHeader (12 bytes):
+    uint32_t magic   // Magic number: 'S2DS' (0x53324453)
+    uint32_t version // Format version: 1
+    uint32_t count   // Number of items in file
+- For each item (variable size):
+    uint32_t len     // Length of ID string (not including null terminator)
+    char[len]        // ID string (not null-terminated)
+    uint32_t code    // Code value
+    char hasTime     // 1 if TIME struct follows, 0 if not
+    TIME (optional)  // Present only if hasTime == 1; sizeof(TIME) bytes
+*/
 DataStructure::DataStructure(std::string Filename) : pStruct2(nullptr) {
   std::ifstream in(Filename, std::ios::binary);
   if (!in)
     throw std::runtime_error("File not found or cannot be opened");
 
   struct FileHeader {
-    unsigned long magic;   // 'S2DS'
-    unsigned long version; // 1
-    unsigned long count;   // number of items
+    uint32_t magic;   // 'S2DS'
+    uint32_t version; // 1
+    uint32_t count;   // number of items
   } hdr{};
 
   in.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
   if (!in || hdr.magic != 0x53324453u /*'S2DS'*/ || hdr.version != 1)
     throw std::runtime_error("Invalid file format");
 
-  for (unsigned long i = 0; i < hdr.count; ++i) {
-    unsigned long len = 0;
+  for (uint32_t i = 0; i < hdr.count; ++i) {
+    uint32_t len = 0;
     in.read(reinterpret_cast<char*>(&len), sizeof(len));
     if (!in || len == 0)
       throw std::runtime_error("Corrupt file: invalid ID length");
     std::string id(len, '\0');
+    // Safe to use &id[0] here because len > 0 (checked above) and string is
+    // sized to len
     in.read(&id[0], len);
-    unsigned long code = 0;
+    uint32_t code = 0;
     in.read(reinterpret_cast<char*>(&code), sizeof(code));
-    uint8_t hasTime = 0;
+    char hasTime = 0;
     in.read(reinterpret_cast<char*>(&hasTime), sizeof(hasTime));
     TIME t{};
     if (hasTime)
@@ -164,7 +189,7 @@ DataStructure::DataStructure(std::string Filename) : pStruct2(nullptr) {
       throw std::runtime_error("Corrupt file while reading item");
 
     // build item
-    ITEM2* it = new ITEM2;
+    pointer_to_item it = new ITEM2;
     it->pID = new char[len + 1];
     std::memcpy(it->pID, id.c_str(), len);
     it->pID[len] = '\0';
@@ -184,9 +209,9 @@ DataStructure::~DataStructure() {
     // For each bucket 0..ALPHA-1 delete linked list of ITEM2
     if (h->ppItems) {
       for (int i = 0; i < ALPHA; ++i) {
-        ITEM2* it = static_cast<ITEM2*>(h->ppItems[i]);
+        pointer_to_item it = static_cast<pointer_to_item>(h->ppItems[i]);
         while (it) {
-          ITEM2* next = it->pNext;
+          pointer_to_item next = it->pNext;
           destroyItem2(it);
           it = next;
         }
@@ -210,10 +235,11 @@ DataStructure::DataStructure(const DataStructure& Original)
     HEADER_C* dst = makeHeader(src->cBegin);
     // copy all buckets
     for (int i = 0; i < ALPHA; ++i) {
-      ITEM2* head = nullptr;
-      ITEM2* tail = nullptr;
-      for (ITEM2* s = static_cast<ITEM2*>(src->ppItems[i]); s; s = s->pNext) {
-        ITEM2* cpy = cloneItem2(s);
+      pointer_to_item head = nullptr;
+      pointer_to_item tail = nullptr;
+      for (pointer_to_item s = static_cast<pointer_to_item>(src->ppItems[i]); s;
+           s = s->pNext) {
+        pointer_to_item cpy = cloneItem2(s);
         if (!head) {
           head = tail = cpy;
         } else {
@@ -237,7 +263,8 @@ int DataStructure::GetItemsNumber() {
   int count = 0;
   for (HEADER_C* h = pStruct2; h; h = h->pNext) {
     for (int i = 0; i < ALPHA; ++i) {
-      for (ITEM2* it = static_cast<ITEM2*>(h->ppItems[i]); it; it = it->pNext)
+      for (pointer_to_item it = static_cast<pointer_to_item>(h->ppItems[i]); it;
+           it = it->pNext)
         ++count;
     }
   }
@@ -261,7 +288,7 @@ pointer_to_item DataStructure::GetItem(char* pID) {
   int idx = alphaIndex(s);
   if (idx < 0)
     return nullptr;
-  ITEM2* it = static_cast<ITEM2*>(h->ppItems[idx]);
+  pointer_to_item it = static_cast<pointer_to_item>(h->ppItems[idx]);
   while (it) {
     if (std::strcmp(it->pID, pID) == 0)
       return it;
@@ -274,7 +301,7 @@ pointer_to_item DataStructure::GetItem(char* pID) {
 void DataStructure::operator+=(pointer_to_item p) {
   if (!p)
     throw std::runtime_error("Null item pointer");
-  ITEM2* src = static_cast<ITEM2*>(p);
+  pointer_to_item src = static_cast<pointer_to_item>(p);
   char f = 0, s = 0;
   parseID(src->pID, f, s);
   if (GetItem(src->pID))
@@ -290,8 +317,8 @@ void DataStructure::operator+=(pointer_to_item p) {
   if (idx < 0)
     throw std::runtime_error("Invalid ID: second word initial not a letter");
   // clone so we own the memory (safe to delete later)
-  ITEM2* it = cloneItem2(src);
-  it->pNext = static_cast<ITEM2*>(h->ppItems[idx]);
+  pointer_to_item it = cloneItem2(src);
+  it->pNext = static_cast<pointer_to_item>(h->ppItems[idx]);
   h->ppItems[idx] = it;
 }
 
@@ -306,8 +333,8 @@ void DataStructure::operator-=(char* pID) {
   int idx = alphaIndex(s);
   if (idx < 0)
     throw std::runtime_error("No item with the specified ID exists");
-  ITEM2* cur = static_cast<ITEM2*>(h->ppItems[idx]);
-  ITEM2* prev = nullptr;
+  pointer_to_item cur = static_cast<pointer_to_item>(h->ppItems[idx]);
+  pointer_to_item prev = nullptr;
   while (cur) {
     if (std::strcmp(cur->pID, pID) == 0) {
       if (prev)
@@ -354,8 +381,9 @@ bool DataStructure::operator==(DataStructure& Other) {
     return false;
   for (HEADER_C* h = pStruct2; h; h = h->pNext) {
     for (int i = 0; i < ALPHA; ++i) {
-      for (ITEM2* a = static_cast<ITEM2*>(h->ppItems[i]); a; a = a->pNext) {
-        ITEM2* b = static_cast<ITEM2*>(Other.GetItem(a->pID));
+      for (pointer_to_item a = static_cast<pointer_to_item>(h->ppItems[i]); a;
+           a = a->pNext) {
+        pointer_to_item b = static_cast<pointer_to_item>(Other.GetItem(a->pID));
         if (!b)
           return false;
         if (a->Code != b->Code)
@@ -383,20 +411,21 @@ void DataStructure::Write(std::string Filename) {
     throw std::runtime_error("Problems with file handling");
 
   struct FileHeader {
-    unsigned long magic;   // 'S2DS'
-    unsigned long version; // 1
-    unsigned long count;   // items
-  } hdr{0x53324453u, 1u, static_cast<unsigned long>(total)};
+    uint32_t magic;   // 'S2DS'
+    uint32_t version; // 1
+    uint32_t count;   // items
+  } hdr{0x53324453u, 1u, static_cast<uint32_t>(total)};
   out.write(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
 
   for (HEADER_C* h = pStruct2; h; h = h->pNext) {
     for (int i = 0; i < ALPHA; ++i) {
-      for (ITEM2* it = static_cast<ITEM2*>(h->ppItems[i]); it; it = it->pNext) {
-        unsigned long len = static_cast<unsigned long>(std::strlen(it->pID));
+      for (pointer_to_item it = static_cast<pointer_to_item>(h->ppItems[i]); it;
+           it = it->pNext) {
+        uint32_t len = static_cast<uint32_t>(std::strlen(it->pID));
         out.write(reinterpret_cast<const char*>(&len), sizeof(len));
         out.write(it->pID, len);
         out.write(reinterpret_cast<const char*>(&it->Code), sizeof(it->Code));
-        uint8_t hasTime = it->pTime ? 1 : 0;
+        char hasTime = it->pTime ? 1 : 0;
         out.write(reinterpret_cast<const char*>(&hasTime), sizeof(hasTime));
         if (hasTime)
           out.write(reinterpret_cast<const char*>(it->pTime), sizeof(TIME));
@@ -409,7 +438,8 @@ void DataStructure::Write(std::string Filename) {
 std::ostream& operator<<(std::ostream& ostr, const DataStructure& str) {
   for (HEADER_C* h = str.pStruct2; h; h = h->pNext) {
     for (int i = 0; i < ALPHA; ++i) {
-      for (ITEM2* it = static_cast<ITEM2*>(h->ppItems[i]); it; it = it->pNext) {
+      for (pointer_to_item it = static_cast<pointer_to_item>(h->ppItems[i]); it;
+           it = it->pNext) {
         ostr << it->pID << " " << it->Code << std::endl;
       }
     }
