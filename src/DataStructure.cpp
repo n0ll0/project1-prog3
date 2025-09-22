@@ -2,6 +2,7 @@
 #include "DataSource.h"
 #include "Headers.h"
 #include "Items.h"
+#include "platform_compat.h"
 #include <cctype>
 #include <cstdint>
 #include <cstring>
@@ -86,7 +87,7 @@ pointer_to_item cloneItem2(const pointer_to_item src) {
   pointer_to_item p = new ITEM2;
   size_t len = std::strlen(src->pID);
   p->pID = new char[len + 1];
-  strcpy_s(p->pID, len + 1, src->pID);
+  STRCPY_SAFE(p->pID, len + 1, src->pID);
   // std::memcpy();
   p->Code = src->Code;
   if (src->pTime) {

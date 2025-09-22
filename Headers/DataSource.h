@@ -1,10 +1,6 @@
 #pragma once
 #include "Headers.h"
-#ifdef DATASOURCE_EXPORTS
-#define LIBSPEC extern "C" __declspec(dllexport)
-#else
-#define LIBSPEC extern "C" __declspec(dllimport)
-#endif
+#include "platform_compat.h"
 LIBSPEC HEADER_B* GetStruct1(int iItem, int nItems);
 LIBSPEC HEADER_C* GetStruct2(int iItem, int nItems);
 LIBSPEC HEADER_A** GetStruct3(int iItem, int nItems);
