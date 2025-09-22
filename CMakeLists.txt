@@ -17,6 +17,12 @@ file(GLOB_RECURSE PROJECT_SOURCES
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
 )
 
+# On non-Windows platforms, exclude MockDataSource.cpp if DataSource.dll is available
+# On Windows, exclude MockDataSource.cpp to use the real DataSource.dll
+if(WIN32)
+	list(REMOVE_ITEM PROJECT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/MockDataSource.cpp")
+endif()
+
 file(GLOB PROJECT_LIBS
 	"${CMAKE_CURRENT_SOURCE_DIR}/libs/*.a"
 	"${CMAKE_CURRENT_SOURCE_DIR}/libs/*.lib"
@@ -46,7 +52,10 @@ target_include_directories(main PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Headers")
 ## to the provided DataSource.lib. This avoids MSVC-import-lib vs MinGW linker format
 ## issues when using the ucrt64/mingw toolchain.
 
-target_link_libraries(main PRIVATE ${PROJECT_LIBS})
+# Link libraries - only link external libs on Windows
+if(WIN32)
+	target_link_libraries(main PRIVATE ${PROJECT_LIBS})
+endif()
 
 # Place the produced executable directly in the build directory for easy running.
 set_target_properties(main PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

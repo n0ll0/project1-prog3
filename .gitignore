@@ -1,3 +1,47 @@
+# Build directories
 build/
 .vscode/
 .hidden/
+
+# Compiled executables
+*.exe
+*.out
+main
+
+# Object files
+*.o
+*.obj
+
+# Libraries
+*.a
+*.lib
+*.so
+*.dylib
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# IDE files
+.vs/
+.vscode/
+*.sln
+*.vcxproj*
+*.user
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Output files
+Datastructure.bin
+*.bin
+
+# OS specific
+.DS_Store
+Thumbs.db

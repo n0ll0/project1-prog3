@@ -1,6 +1,7 @@
 #pragma once
 #include "DataStructure.h"
 #include "DataSource.h"
+#include "platform_compat.h"
 
 template <typename T> void EvaluationTest(int iItem, std::string filename) {
   using namespace std;
@@ -34,7 +35,7 @@ template <typename T> void EvaluationTest(int iItem, std::string filename) {
   }
   std::cout << *pds2 << std::endl;
   try {
-    strcpy_s(buf, 20, "Taevakarva Sinine");
+    STRCPY_SAFE(buf, 20, "Taevakarva Sinine");
     *pds2 += (T*)GetItem(iItem, buf);
     *pds2 += (T*)GetItem(iItem, buf);
   } catch (std::exception& e) {
@@ -81,19 +82,19 @@ template <typename T> void EvaluationTest(int iItem, std::string filename) {
   std::cout << std::endl << "Test operator-=" << std::endl;
   DataStructure* pds6 = new DataStructure;
   for (int i = 0; i < 6; i++) {
-    strcpy_s(buf, 20, colours[i]);
+    STRCPY_SAFE(buf, 20, colours[i]);
     T* p = (T*)GetItem(iItem, buf);
     *pds6 += (T*)GetItem(iItem, buf); // test operator+=
   }
   std::cout << *pds6 << std::endl;
   try {
-    strcpy_s(buf, 20, "Pleekinud Pruun");
+    STRCPY_SAFE(buf, 20, "Pleekinud Pruun");
     *pds6 -= buf;
   } catch (std::exception& e) {
     std::cout << e.what() << std::endl;
   }
   for (int i = 0; i < 6; i++) {
-    strcpy_s(buf, 20, colours[i]);
+    STRCPY_SAFE(buf, 20, colours[i]);
     T* p = (T*)GetItem(iItem, buf);
     *pds6 -= buf; // test operator-=
   }
@@ -105,14 +106,14 @@ template <typename T> void EvaluationTest(int iItem, std::string filename) {
   std::cout << std::endl << "TestGetItem" << std::endl;
   DataStructure* pds7 = new DataStructure;
   for (int i = 0; i < 6; i++) {
-    strcpy_s(buf, 20, colours[i]);
+    STRCPY_SAFE(buf, 20, colours[i]);
     T* p = (T*)GetItem(iItem, buf);
     *pds7 += (T*)GetItem(iItem, buf); // test operator+=
   }
-  strcpy_s(buf, 20, "Heledam Roheline");
+  STRCPY_SAFE(buf, 20, "Heledam Roheline");
   std::cout << (pds7->GetItem(buf) ? "Item found" : "Item not found")
             << std::endl;
-  strcpy_s(buf, 20, "Pleekinud Pruun");
+  STRCPY_SAFE(buf, 20, "Pleekinud Pruun");
   std::cout << (pds7->GetItem(buf) ? "Item found" : "Item not found")
             << std::endl;
   //
