@@ -1,0 +1,46 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "minGW-ninja",
+      "displayName": "MinGW + Ninja (Debug)",
+      "hidden": false,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build",
+      "outDir": "${sourceDir}/out/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "C:/msys64/ucrt64/bin/gcc.exe",
+        "CMAKE_CXX_COMPILER": "C:/msys64/ucrt64/bin/g++.exe"
+      }
+    },
+    {
+      "name": "msvc-vs2019",
+      "displayName": "MSVC - Visual Studio 16 2019 (x64)",
+      "hidden": false,
+      "generator": "Visual Studio 16 2019",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/out/build-vs",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-minGW",
+      "configurePreset": "minGW-ninja",
+      "configuration": "Debug"
+    },
+    {
+      "name": "build-msvc",
+      "configurePreset": "msvc-vs2019",
+      "configuration": "Debug"
+    }
+  ]
+}
